@@ -136,6 +136,7 @@ ai-statistical-reasoning-validator/
 │
 ├── validation/
 │   ├── numerical_validation.py
+│   ├── reference_calculations.py
 │   ├── methodology_validation.py
 │   └── interpretation_validation.py
 │
@@ -250,6 +251,7 @@ The immediate priorities are:
 - [x] Develop automated MLE tests.
 - [x] Implement numerical validation.
 - [x] Develop statistical evaluation reports.
+- [x] Add independent reference calculations and parameter-level validation statuses.
 
 The current engine validates numeric MLE estimates supplied by callers. Parsing
 AI-generated prose, methodology validation, interpretation validation, and
