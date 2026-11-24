@@ -243,13 +243,17 @@ Future interoperability may be explored without introducing unnecessary dependen
 Current development stage: Initial development and architectural setup.
 
 The immediate priorities are:
-- [ ] Establish project architecture.
-- [ ] Implement Bernoulli MLE estimator.
-- [ ] Implement Poisson MLE estimator.
-- [ ] Implement Normal MLE estimator.
-- [ ] Develop automated MLE tests.
-- [ ] Implement numerical validation.
-- [ ] Develop statistical evaluation reports.
+- [x] Establish project architecture.
+- [x] Implement Bernoulli MLE estimator, likelihood, and log-likelihood.
+- [x] Implement Poisson MLE estimator, likelihood, and log-likelihood.
+- [x] Implement Normal MLE estimator with variance denominator n.
+- [x] Develop automated MLE tests.
+- [x] Implement numerical validation.
+- [x] Develop statistical evaluation reports.
+
+The current engine validates numeric MLE estimates supplied by callers. Parsing
+AI-generated prose, methodology validation, interpretation validation, and
+statistical methods outside the three MLE families remain future work.
 13. Contribution
 This project is currently under active individual development.
 

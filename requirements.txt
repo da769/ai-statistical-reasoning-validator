@@ -5,5 +5,5 @@ Statsmodels
 Scikit-learn
 SymPy 
 Pytest
-Streamlit
 GitHub
+
