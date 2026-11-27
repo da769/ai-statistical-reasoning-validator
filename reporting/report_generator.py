@@ -34,6 +34,6 @@ def generate_independent_mle_report(method: str, data: Any, ai_estimate: Any, *,
                            "validation_status": result.status.value,
                            "explanation": result.explanation})
     statuses = {item["validation_status"] for item in parameters}
-    overall = "PASS" if statuses == {"PASS"} else "INVALID" if statuses == {"INVALID"} else "FAIL"
+    overall = "INVALID" if "INVALID" in statuses else "PASS" if statuses == {"PASS"} else "FAIL"
     return {"distribution": method.lower(), "parameters": parameters,
             "validation_status": overall}

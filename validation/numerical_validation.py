@@ -152,10 +152,12 @@ def validate_mle(method: str, data: Any, ai_estimate: Any, *, tolerance: float =
         return next(iter(results.values()))
     values = list(results.values())
     passed = all(result.status is ValidationStatus.PASS for result in values)
+    status = (ValidationStatus.INVALID if any(result.status is ValidationStatus.INVALID for result in values)
+              else ValidationStatus.PASS if passed else ValidationStatus.FAIL)
     return ValidationResult(ai_estimate,
                             {key: result.independent_estimate for key, result in results.items()},
                             {key: result.absolute_error for key, result in results.items()},
                             {key: result.relative_error for key, result in results.items()},
-                            tolerance, passed, ValidationStatus.PASS if passed else ValidationStatus.FAIL,
+                            tolerance, passed, status,
                             "All Normal parameters agree within tolerance." if passed else
                             "One or more Normal parameters differ beyond tolerance.", tolerance, tolerance)

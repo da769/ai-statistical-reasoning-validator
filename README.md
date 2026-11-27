@@ -277,3 +277,19 @@ Areas of interest:
 - Data Science.
 - AI Reasoning and Evaluation.
 GitHub: @da769
+
+## Numerical validation stress and mutation checks
+
+The independent MLE validation engine is exercised by `tests/test_validation_stress.py` across boundary estimates, varied sample sizes, large finite values, invalid input shapes and values, tolerance boundaries, deterministic randomized samples, and report status. Randomized cases use a fixed seed and analytic count/mean identities as their oracle. The reference path is also tested with production estimators and the estimator input helper disabled.
+
+Run checks from Windows PowerShell with the project virtual environment:
+
+```powershell
+.\.venv\Scripts\python.exe -m pytest -q
+.\.venv\Scripts\python.exe -m pytest -q tests\test_validation_stress.py
+.\.venv\Scripts\python.exe tests\mutation_harness.py
+```
+
+The mutation harness copies the relevant source and tests into a temporary directory, applies one controlled source mutation, then runs its mapped pytest node. It never edits live source files. `KILLED` means that test fails against the mutated copy; `SURVIVED` means it still passes. `NOT APPLICABLE` means the expected source fragment was absent and must be reviewed. This is a focused set of eight mutations rather than an exhaustive source-level mutation run.
+
+Passing tests raise confidence for the cases covered but cannot prove complete correctness. Extreme finite inputs may exceed the representable range of intermediate arithmetic, and the current harness does not perform exhaustive mutation or floating-point exploration. This phase covers numerical estimates, comparison, validation, and reports; it does not assess statistical methodology or reasoning.
