@@ -91,16 +91,27 @@ def run_mutation(mutation):
         source.write_text(original.replace(mutation["old"], mutation["new"], 1), encoding="utf-8")
         command = [sys.executable, "-B", "-m", "pytest", "-p", "no:cacheprovider", "-q", mutation["test"]]
         completed = subprocess.run(command, cwd=project, capture_output=True, text=True)
-        result = "KILLED" if completed.returncode != 0 else "SURVIVED"
-        summary = (completed.stdout + completed.stderr).strip().splitlines()
+        output = completed.stdout + completed.stderr
+        summary = output.strip().splitlines()
+        target_failure = next((line.strip() for line in summary
+                               if line.strip().startswith(f"FAILED {mutation['test']}")), None)
+        if completed.returncode == 0:
+            result = "SURVIVED"
+            detail = "mapped pytest node passed"
+        elif target_failure:
+            result = "KILLED"
+            detail = target_failure
+        else:
+            result = "HARNESS ERROR"
+            detail = summary[-1] if summary else f"pytest exit code {completed.returncode}"
         return {"mutation": mutation["name"], "test": mutation["test"], "result": result,
-                "detail": summary[-1] if summary else f"pytest exit code {completed.returncode}"}
+                "detail": detail}
 
 
 def main():
     results = [run_mutation(mutation) for mutation in MUTATIONS]
     print(json.dumps(results, indent=2))
-    return 1 if any(item["result"] in {"SURVIVED", "NOT APPLICABLE"} for item in results) else 0
+    return 1 if any(item["result"] != "KILLED" for item in results) else 0
 
 
 if __name__ == "__main__":

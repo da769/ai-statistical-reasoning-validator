@@ -253,9 +253,9 @@ The immediate priorities are:
 - [x] Develop statistical evaluation reports.
 - [x] Add independent reference calculations and parameter-level validation statuses.
 
-The current engine validates numeric MLE estimates supplied by callers. Parsing
-AI-generated prose, methodology validation, interpretation validation, and
-statistical methods outside the three MLE families remain future work.
+The numerical engine validates numeric MLE estimates supplied by callers.
+
+The reasoning_validation package adds deterministic, structured checks for method selection, contextual assumptions, mathematical formula claims, and interpretations for Bernoulli, Poisson, and Normal MLE. Arbitrary AI-generated prose and statistical methods outside these three MLE families remain future work.
 13. Contribution
 This project is currently under active individual development.
 
@@ -293,3 +293,60 @@ Run checks from Windows PowerShell with the project virtual environment:
 The mutation harness copies the relevant source and tests into a temporary directory, applies one controlled source mutation, then runs its mapped pytest node. It never edits live source files. `KILLED` means that test fails against the mutated copy; `SURVIVED` means it still passes. `NOT APPLICABLE` means the expected source fragment was absent and must be reviewed. This is a focused set of eight mutations rather than an exhaustive source-level mutation run.
 
 Passing tests raise confidence for the cases covered but cannot prove complete correctness. Extreme finite inputs may exceed the representable range of intermediate arithmetic, and the current harness does not perform exhaustive mutation or floating-point exploration. This phase covers numerical estimates, comparison, validation, and reports; it does not assess statistical methodology or reasoning.
+
+
+## Statistical reasoning and methodology validation
+
+The separate `reasoning_validation` package evaluates structured reasoning claims for the supported Bernoulli, Poisson, and Normal MLE cases. It does not change the estimators or the independent numerical reference engine.
+
+Components:
+
+- `method_selection.py` checks observed data constraints and structured problem context, including `outcome_type`, selected `distribution`, `distribution_justification`, and parameter names. Numeric shape alone does not establish model suitability.
+- `assumptions.py` checks data-verifiable properties (binary/count data and positive observed Normal variance) separately from contextual claims such as independence, constant success probability/rate, equidispersion, and normality.
+- `formulas.py` evaluates structured formula expressions for likelihood, log-likelihood, score equations, and MLEs. Its fixed probes are independent of production estimators.
+- `interpretation.py` checks structured parameter meanings, including probability versus frequency, variance versus standard deviation, estimate versus population truth, guaranteed result claims, and the Poisson observation interval.
+- `engine.py` orchestrates components. The existing `validation/methodology_validation.py` and `validation/interpretation_validation.py` paths re-export these functions without duplicating their implementations. `reports.py` produces a structured report with explicit issues, warnings, limitations, and an overall status. An optional numerical validation result is reported separately and cannot override a reasoning failure.
+
+Use `validate_reasoning` from the package:
+
+```python
+from reasoning_validation import validate_reasoning
+
+report = validate_reasoning(
+    "poisson",
+    [0, 1, 2, 3],
+    problem_context={
+        "outcome_type": "count",
+        "distribution": "poisson",
+        "parameters": ["lambda"],
+    },
+    assumptions={
+        "independence": {"satisfied": True, "evidence": "study design"},
+        "constant_rate": {"satisfied": True, "evidence": "fixed observation window"},
+        "equidispersion": {"satisfied": True, "evidence": "model specification"},
+    },
+)
+```
+
+The report will still mark formula and interpretation sections `INSUFFICIENT_INFORMATION` until corresponding structured claims are supplied. Top-level statuses are `PASS`, `FAIL`, `PARTIAL`, and `INSUFFICIENT_INFORMATION`. Any failed check makes the overall result `FAIL`; missing contextual information is never silently counted as a pass.
+
+Assumption values can be `True` or `False`, or mappings with `satisfied` and optional `evidence`/`justification`. A bare `True` is a `WARNING` because it has no supporting context; an absent assumption is `INSUFFICIENT_INFORMATION`; `False` is `FAIL`. Even supplied evidence is recorded as context, not proof. Sample observations cannot establish independence, a constant rate, or a population distribution assumption. Poisson sample mean and variance are shown only as an equidispersion diagnostic.
+
+### Structured formula claims
+
+Formula claims are expression trees, not strings. An expression can be a number, `{"var": "x"}`, `{"var": "n"}`, or an operation mapping with `op` and `args`. Supported operations are `add`, `sub`, `mul`, `div`, `pow`, `neg`, `log`, `exp`, `sqrt`, and `factorial`. `{"op": "sum", "expr": ...}` and `{"op": "product", "expr": ...}` bind `x` to each observation. Other available variables include `p`, `lambda`, `mean`, `variance`, `sum_x`, and `pi` where relevant.
+
+The top-level formula mapping may contain `likelihood`, `log_likelihood`, `score`, and `estimator`. Score and estimator claims map parameter names (`p`; `lambda`; or `mean` and `variance`) to expression trees. The Normal MLE variance is checked against denominator `n`; an `n - 1` expression fails. Agreement over supplied data and fixed deterministic probes is a numerical equivalence check, not symbolic proof.
+
+### Structured interpretation claims
+
+`interpretations` maps parameter names to structured fields. Bernoulli uses concept `probability_of_success` and `quantity_type: probability`; Poisson uses `expected_count_per_interval` and requires a non-empty `observation_interval`; Normal uses `central_location` for mean and `dispersion_variance` for variance. All claims should set `population_relation: estimate_of_population_parameter` and `certainty: estimate`. Arbitrary natural-language reasoning is not evaluated.
+
+Run the complete test suite or the reasoning tests alone in Windows PowerShell:
+
+```powershell
+.\.venv\Scripts\python.exe -m pytest -q
+.\.venv\Scripts\python.exe -m pytest -q tests\test_reasoning_validation.py
+```
+
+The deterministic checks cannot establish every real-world assumption, interpret free text, or prove arbitrary algebraic identities. Their scope is limited to the structured fields, supported expression language, and three MLE families described here.
